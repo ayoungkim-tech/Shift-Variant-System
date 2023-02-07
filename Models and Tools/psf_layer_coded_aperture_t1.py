@@ -5,9 +5,11 @@ from tensorflow.keras.constraints import NonNeg
 import numpy as np
 import poppy
 import os
+import scipy
+import tensorflow as tf
 from random import random
 from scipy.io import loadmat
-from functions import deta, area_downsampling_tf, img_psf_conv,get_color_bases,propagation,propagation_back,kronecker_product
+from Models_and_Tools.functions import deta, area_downsampling_tf, img_psf_conv,get_color_bases,propagation,propagation_back,kronecker_product
 from tensorflow.keras.constraints import NonNeg
 
 class Psf_layer_mostrar(Layer):
@@ -23,7 +25,7 @@ class Psf_layer_mostrar(Layer):
         if bgr_response is not None:
             self.bgr_response = K.cast(bgr_response,dtype=K.float32)
         else:
-            temp = loadmat('Sensor_12.mat')
+            temp = loadmat('Models_and_Tools\Sensor_12.mat')
             self.bgr_response = np.concatenate((temp['B'], temp['G'], temp['R']))
             #self.bgr_response = K.cast(self.bgr_response, dtype=K.float32)
             #self.bgr_response = K.expand_dims(K.expand_dims(K.expand_dims(self.bgr_response, -1), -1), -1)
@@ -76,11 +78,16 @@ class Psf_layer_mostrar(Layer):
         self.myweights = K.convert_to_tensor(loadmat('FiltroEd.mat')['Fp2']/2, dtype=K.float32)
         self.r = np.sqrt(self.x ** 2 + self.y ** 2)[None, :, :, None]
         self.aperture = (self.r < self.max_val).astype(np.float32)
+        aperture = self.aperture
+        #print(self.aperture)
+        #print('---------------aperture--------------')
         self.x = K.convert_to_tensor(self.x, dtype=K.float32)
         self.y = K.convert_to_tensor(self.y, dtype=K.float32)
         self.max_val = K.convert_to_tensor(self.max_val, dtype=K.float32)
         self.r = K.convert_to_tensor(self.r, dtype=K.float32)
         self.aperture = K.convert_to_tensor(self.aperture,dtype=K.complex64)
+        print(self.aperture)
+        print('---------------aperture--------------')
         N_psf = K.floor((self.Nt * 2 * self.fac_m) * self.patch_size / self.wave_resolution[0])
         self.St = None
         fac = int(K.floor(self.patch_size / N_psf))
@@ -107,8 +114,8 @@ class Psf_layer_mostrar(Layer):
         Mask = kronecker_product(
             K.ones((int(self.wave_resolution[0] / (2 * self.fac_m * self.Nt)), int(self.wave_resolution[0] / (2 * self.fac_m * self.Nt)))), Aux1)
 
-        height_map = self.myweights
-        #height_map = K.reduce_sum(self.zernike_coeffs * self.zernike_volume, axis=0)
+        #height_map = self.myweights
+        height_map = K.reduce_sum(self.zernike_coeffs * self.zernike_volume, axis=0)
         height_map = K.expand_dims(K.expand_dims(height_map, 0), -1, name='height_map')
         #height_map = K.clip_by_value(height_map,-0.755e-6,0.755e-6)
         height_map = K.math.floormod(height_map + 0.755e-6, 2 * 0.755e-6) - 0.755e-6
@@ -169,6 +176,7 @@ class Psf_layer_mostrar(Layer):
                     psfs = area_downsampling_tf(psfs, self.patch_size)
                     psfs = K.math.divide(psfs, K.reduce_sum(psfs, axis=[1, 2]))
                     psfs = K.transpose(psfs, [1, 2, 0, 3])
+                    
                     if(band==3):
                         psfs_ban_3 = psfs_ban_3.write(0,psfs)
                     if (band == 10):
@@ -213,8 +221,8 @@ class Psf_layer(Layer):
         self.fac_m = fac_m
         if bgr_response is not None:
             self.bgr_response = K.cast(bgr_response,dtype=K.float32)
-        else:
-            temp = loadmat('Sensor_12.mat')
+        else: # HERE
+            temp = loadmat('Models_and_Tools\Sensor_70.mat')
             self.bgr_response = np.concatenate((temp['B'], temp['G'], temp['R']))
             #self.bgr_response = K.cast(self.bgr_response, dtype=K.float32)
             #self.bgr_response = K.expand_dims(K.expand_dims(K.expand_dims(self.bgr_response, -1), -1), -1)
@@ -223,10 +231,12 @@ class Psf_layer(Layer):
             self.wave_lengths = K.cast(wave_lengths,dtype=K.float32)
         else:
             self.wave_lengths = K.cast(np.linspace(420, 660, 25)*1e-9,dtype=K.float32)
+            
         if refractive_idcs is not None:
             self.refractive_idcs = K.cast(refractive_idcs,dtype=K.float32)
         else:
             self.refractive_idcs = deta(self.wave_lengths)
+            
         self.patch_size = patch_size  # Size of patches to be extracted from images, and resolution of simulated sensor
         self.sample_interval = sample_interval  # Sampling interval (size of one "pixel" in the simulated wavefront)
         self.wave_resolution = wave_resolution,wave_resolution
@@ -297,7 +307,10 @@ class Psf_layer(Layer):
 
         Mask = kronecker_product(
             K.ones((int(self.wave_resolution[0] / (2 * self.fac_m * self.Nt)), int(self.wave_resolution[0] / (2 * self.fac_m * self.Nt)))), Aux1)
-
+        
+        #scipy.io.savemat('colfilt.mat', {'colfilt': Mask})
+        print(Mask)
+        print('----------save----col-----from---mask-------------')
 
         height_map = K.reduce_sum(self.zernike_coeffs * self.zernike_volume, axis=0)
         height_map = K.expand_dims(K.expand_dims(height_map, 0), -1, name='height_map')
@@ -373,6 +386,7 @@ class Psf_layer(Layer):
                     psfs = area_downsampling_tf(psfs, self.patch_size)
                     psfs = K.math.divide(psfs, K.reduce_sum(psfs, axis=[1, 2]))
                     psfs = K.transpose(psfs, [1, 2, 0, 3])
+                    
                     output_image = img_psf_conv(K.expand_dims(inputs[:, :, :, band] * self.St[:,:,:,int(rec*int(N_psf)+rec2)], -1), psfs)
 
                     y_med_r=y_med_r.write(it,self.fr[0, 0, band] * output_image)

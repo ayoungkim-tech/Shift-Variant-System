@@ -22,14 +22,14 @@ from pathlib import Path
 
 # Defined protocol of input and ouput (it is recommended only read, not applied operator here, but it is possible)
 def Input_image(image):
-    images = loadmat(image).get('rad').astype(np.float32)
+    images = loadmat(image).get('cube').astype(np.float32)
     x = np.int(np.random.rand()*200)
     y = np.int(np.random.rand() * 200)
     return images[x:x+250, y:y+250, 3:-3]
 
 
 def Oput_image(image):
-    images = loadmat(image).get('rad').astype(np.float32)
+    images = loadmat(image).get('cube').astype(np.float32)
     return images#[0:250, 0:250, :]
 
 

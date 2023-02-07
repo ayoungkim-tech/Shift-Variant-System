@@ -12,16 +12,16 @@ import numpy as np
 
 
 #-------------------- This are main py------------------------
-from Read_Spectral import *   # data set build
-from recoverynet_super import *     # Net build
+from Models_and_Tools.Read_Spectral import *   # data set build
+from Models_and_Tools.recoverynet_super import *     # Net build
 
 def root_mean_squared_error(y_true, y_pred):
     return 20*tf.reduce_mean(tf.norm(y_true - y_pred, ord=2, axis=-1)) + tf.reduce_mean(tf.norm(y_true - y_pred, ord='fro', axis=[1,2]))
 
 
 #----------------------------- directory of the spectral data set -------------------------
-PATH = '/home/jams/Documents/dataset/Formated/'
-PATH2 = '../dataset/Formated/'
+#PATH = 'dataset/Formated/'
+PATH = 'dataset/NTIRE2020_Train_Spectral/'
 # parameters of the net
 BATCH_SIZE = 4; IMG_WIDTH = 250; IMG_HEIGHT = 250; L_bands    = 25; L_imput    = 25
 test_dataset,train_dataset=Build_data_set(IMG_WIDTH=IMG_WIDTH,IMG_HEIGHT=IMG_HEIGHT,
@@ -48,7 +48,7 @@ def PSNR_Metric(y_true, y_pred):
   return tf.reduce_mean(tf.image.psnr(y_true,y_pred,1))
 model.compile(optimizer=optimizad, loss=root_mean_squared_error, metrics = [PSNR_Metric],run_eagerly=False)
 history = model.fit(train_dataset, epochs=150, validation_data=test_dataset,callbacks=[LearningRateScheduler(lr_scheduler, verbose=1)])
-model.save_weights("modelo_free_3mm_"+str(diam)+".h5")
+model.save_weights("modelo_free_3mm_"+str(diam)+"_new.h5")
 
 
 # See the height_map

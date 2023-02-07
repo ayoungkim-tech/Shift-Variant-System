@@ -7,7 +7,7 @@ import poppy
 import os
 from random import random
 from scipy.io import loadmat
-from functions import reg_binary, deta, area_downsampling_tf, img_psf_conv,get_color_bases,propagation,propagation_back,kronecker_product
+from Models_and_Tools.functions import reg_binary, deta, area_downsampling_tf, img_psf_conv,get_color_bases,propagation,propagation_back,kronecker_product
 from tensorflow.keras.constraints import NonNeg
 
 class Psf_layer_mostrar(Layer):
@@ -23,7 +23,7 @@ class Psf_layer_mostrar(Layer):
         if bgr_response is not None:
             self.bgr_response = K.cast(bgr_response,dtype=K.float32)
         else:
-            temp = loadmat('Sensor_12.mat')
+            temp = loadmat('Models_and_Tools\Sensor_12.mat')
             self.bgr_response = np.concatenate((temp['B'], temp['G'], temp['R']))
             #self.bgr_response = K.cast(self.bgr_response, dtype=K.float32)
             #self.bgr_response = K.expand_dims(K.expand_dims(K.expand_dims(self.bgr_response, -1), -1), -1)

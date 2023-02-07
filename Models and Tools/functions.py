@@ -122,7 +122,7 @@ def get_color_bases(wls):
         ,0.8406,0.7599,0.6849,0.6312,0.6072,0.5684,0.5477,0.4943,0.3546,0.1722\
         ,0.0864]                                                          # cyan color
 
-    x_wvls = np.linspace(400e-9,700e-9,len(SG))
+    x_wvls = np.linspace(420e-9,720e-9,len(SG))
 
     fg = interpolate.interp1d(x_wvls, SG)
     fr = interpolate.interp1d(x_wvls, SR)
